@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>조선연방 행정구역 검색</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+      font-family: 'Noto Sans KR', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      width: 100%;
+      max-width: 500px;
+    }
+    h1, h2 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin: 15px 0 5px;
+      font-weight: bold;
+    }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+      box-sizing: border-box;
+    }
+    select:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: #007BFF;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007BFF;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    p#code, p#lookupResult {
+      margin-top: 20px;
+      font-size: 20px;
+      color: #007BFF;
+      font-weight: bold;
+    }
+    hr {
+      margin: 40px 0;
+      border: none;
+      border-top: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>조선연방 행정구역 검색</h1>
+    <label for="province">주 선택:</label>
+    <select id="province" onchange="updateSubdivisions()">
+      <option value="">선택하세요</option>
+    </select>
+    
+    <label for="subdivision">부 선택:</label>
+    <select id="subdivision" onchange="updateCities()" disabled>
+      <option value="">선택하세요</option>
+    </select>
+    
+    <label for="city">시 선택:</label>
+    <select id="city" onchange="displayCode()" disabled>
+      <option value="">선택하세요</option>
+    </select>
+    
+    <p id="code"></p>
+    
+    <hr>
+    
+    <h2>고유번호로 행정구역 검색</h2>
+    <label for="lookup">고유번호 입력 (예: A11):</label>
+    <input type="text" id="lookup" placeholder="예: A11" maxlength="3">
+    <button onclick="reverseLookup()">검색</button>
+    <p id="lookupResult"></p>
+  </div>
+
+  <script>
+    const data = {
+      "A": { name: "조선주", subdivisions: {
+          "1": { name: "춘천부", cities: { "1": "춘천시" } },
+          "2": { name: "양주부", cities: { "1": "포천시" } },
+          "3": { name: "개성부", cities: { "1": "개성시" } },
+          "4": { name: "철원부", cities: { "1": "철원시" } },
+          "5": { name: "봉산부", cities: {} },
+          "6": { name: "덕원부", cities: { "1": "원산시" } }
+      }},
+      "B": { name: "북해주", subdivisions: {
+          "1": { name: "남부", cities: { "1": "백설직할시" } },
+          "2": { name: "북부", cities: {} }
+      }},
+      "C": { name: "소경주", subdivisions: {
+          "1": { name: "해서부", cities: { "1": "개경시" } },
+          "2": { name: "인천부", cities: { "1": "인천직할시" } },
+          "3": { name: "두부", cities: { "1": "의주시", "2": "나진시" } }
+      }},
+      "D": { name: "남경주", subdivisions: {
+          "1": { name: "남경부", cities: { "1": "성남특별시" } }
+      }}
+    };
+
+    const provinceSelect = document.getElementById("province");
+    const subdivisionSelect = document.getElementById("subdivision");
+    const citySelect = document.getElementById("city");
+    const codeDisplay = document.getElementById("code");
+
+    function populateProvinces() {
+      for (let code in data) {
+        let option = new Option(data[code].name, code);
+        provinceSelect.add(option);
+      }
+    }
+
+    function updateSubdivisions() {
+      subdivisionSelect.innerHTML = '<option value="">선택하세요</option>';
+      citySelect.innerHTML = '<option value="">선택하세요</option>';
+      citySelect.disabled = true;
+      subdivisionSelect.disabled = false;
+      codeDisplay.textContent = "";
+
+      let provinceCode = provinceSelect.value;
+      if (!provinceCode) {
+        subdivisionSelect.disabled = true;
+        return;
+      }
+
+      let subdivisions = data[provinceCode].subdivisions;
+      for (let subCode in subdivisions) {
+        let option = new Option(subdivisions[subCode].name, subCode);
+        subdivisionSelect.add(option);
+      }
+    }
+
+    function updateCities() {
+      citySelect.innerHTML = '<option value="">선택하세요</option>';
+      citySelect.disabled = false;
+      codeDisplay.textContent = "";
+      
+      let provinceCode = provinceSelect.value;
+      let subCode = subdivisionSelect.value;
+      if (!subCode) {
+        citySelect.disabled = true;
+        return;
+      }
+
+      let cities = data[provinceCode].subdivisions[subCode].cities;
+      for (let cityCode in cities) {
+        let option = new Option(cities[cityCode], cityCode);
+        citySelect.add(option);
+      }
+    }
+
+    function displayCode() {
+      let provinceCode = provinceSelect.value;
+      let subCode = subdivisionSelect.value;
+      let cityCode = citySelect.value;
+      if (cityCode) {
+        codeDisplay.textContent = `고유번호: ${provinceCode}${subCode}${cityCode}`;
+      } else {
+        codeDisplay.textContent = "";
+      }
+    }
+
+    function reverseLookup() {
+      const lookupValue = document.getElementById("lookup").value.trim();
+      const lookupResult = document.getElementById("lookupResult");
+      
+      if (lookupValue.length !== 3) {
+        lookupResult.textContent = "유효한 고유번호를 입력하세요 (예: A11)";
+        return;
+      }
+      
+      const provinceCode = lookupValue.charAt(0);
+      const subCode = lookupValue.charAt(1);
+      const cityCode = lookupValue.charAt(2);
+      
+      if (!data[provinceCode]) {
+        lookupResult.textContent = "해당 주가 존재하지 않습니다.";
+        return;
+      }
+      if (!data[provinceCode].subdivisions[subCode]) {
+        lookupResult.textContent = "해당 부가 존재하지 않습니다.";
+        return;
+      }
+      if (!data[provinceCode].subdivisions[subCode].cities[cityCode]) {
+        lookupResult.textContent = "해당 시가 존재하지 않습니다.";
+        return;
+      }
+      
+      const provinceName = data[provinceCode].name;
+      const subdivisionName = data[provinceCode].subdivisions[subCode].name;
+      const cityName = data[provinceCode].subdivisions[subCode].cities[cityCode];
+      
+      lookupResult.textContent = `행정구역: ${provinceName} > ${subdivisionName} > ${cityName}`;
+    }
+
+    populateProvinces();
+  </script>
+</body>
+</html>
